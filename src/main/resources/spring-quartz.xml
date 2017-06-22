@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+            http://www.springframework.org/schema/beans/spring-beans-4.0.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:component-scan base-package="com.wu" />
+
+    <!-- 属性文件读入 -->
+    <bean id="propertyConfigurer"
+          class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath:jdbc.properties</value>
+            </list>
+        </property>
+    </bean>
+    <!--配置定时器数据源-->
+    <bean name="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+        <property name="url" value="jdbc:mysql://${db_url}/quartz?useUnicode=true&amp;characterEncoding=UTF-8"/>
+        <property name="username" value="${db_username}"/>
+        <property name="password" value="${db_password}"/>
+        <!-- 配置监控统计拦截的,state监控统计；wall防御sql注入;log4j日志用的 -->
+        <property name="filters" value="stat,wall"/>
+
+        <!-- 配置初始化大小、最小、最大连接数量 -->
+        <property name="initialSize" value="20" />
+        <property name="minIdle" value="10" />
+        <property name="maxActive" value="50" />
+        <!-- 获取连接时最大等待时间，单位毫秒 -->
+        <property name="maxWait" value="60000" />
+        <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+        <property name="timeBetweenEvictionRunsMillis" value="60000" />
+        <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+        <property name="minEvictableIdleTimeMillis" value="300000" />
+        <!--用来检测连接是否有效的sql-->
+        <property name="validationQuery" value="SELECT 'x'" />
+        <!--建议配置为true，不影响性能，并且保证安全性。申请连接的时候检测，如果空闲时间大于timeBetweenEvictionRunsMillis，执行validationQuery检测连接是否有效。-->
+        <property name="testWhileIdle" value="true" />
+        <!--申请连接时执行validationQuery检测连接是否有效，做了这个配置会降低性能-->
+        <property name="testOnBorrow" value="false" />
+        <!--归还连接时执行validationQuery检测连接是否有效，做了这个配置会降低性能-->
+        <property name="testOnReturn" value="false" />
+        <!-- 打开PSCache，并且指定每个连接上PSCache的大小，mysql不支持建议关闭-->
+        <!--<property name="poolPreparedStatements" value="true" />
+        <property name="maxPoolPreparedStatementPerConnectionSize" value="20" />-->
+    </bean>
+    <!-- 分布式事务配置 start -->
+
+    <!-- 配置线程池-->
+    <bean name="executor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+        <property name="corePoolSize" value="15"/>
+        <property name="maxPoolSize" value="25"/>
+        <property name="queueCapacity" value="100"/>
+    </bean>
+
+    <bean name="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!-- 配置调度任务总管理-->
+    <bean name="quartzScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="configLocation" value="classpath:quartz.properties"/>
+        <property name="dataSource" ref="dataSource"/>
+        <property name="transactionManager" ref="transactionManager"/>
+
+        <!-- 任务唯一的名称，将会持久化到数据库-->
+        <property name="schedulerName" value="baseScheduler"/>
+
+        <!-- 每台集群机器部署应用的时候会更新触发器-->
+        <property name="overwriteExistingJobs" value="true"/>
+        <property name="applicationContextSchedulerContextKey" value="appli"/>
+
+        <property name="jobFactory">
+            <bean class="com.wu.quartz.AutowiringSpringBeanJobFactory"/>
+        </property>
+
+        <!--触发时间配置集成-->
+        <property name="triggers">
+            <list>
+                <ref bean="timeTaskJobsTrigger"/>
+            </list>
+        </property>
+
+        <property name="taskExecutor" ref="executor"/>
+
+    </bean>
+
+    <!-- 配置触发时间 -->
+    <bean name="timeTaskJobsTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <!--定时任务job集成-->
+        <property name="jobDetail" ref="timeTaskJobs"/>
+        <property name="cronExpression" value="0/10 * * * * ?"/>
+    </bean>
+
+
+    <!-- 配置定时任务Job详情方法2 obDetail用JobDetailFactoryBean包装QuartzJobBean的继承子类（即Job类）的实例-->
+    <bean name="timeTaskJobs" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.wu.task.TimeTaskJobs"/>
+        <!--因为我使用了spring的注解，所以这里可以不用配置scheduler的属性-->
+        <!--<property name="jobDataAsMap">
+            <map>
+                <entry key="clusterQuartz" value="com.aaron.framework.clusterquartz.job.ClusterQuartz"/>
+            </map>
+        </property>-->
+        <property name="durability" value="true"/>
+        <!--设置为 true，当Quartz服务被中止后，再次启动或集群中其他机器接手任务时会尝试恢复执行之前未完成的所有任务-->
+        <property name="requestsRecovery" value="false"/>
+    </bean>
+    <!-- 分布式事务配置 end -->
+</beans>
