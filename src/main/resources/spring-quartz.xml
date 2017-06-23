@@ -70,7 +70,7 @@
 
         <!-- 每台集群机器部署应用的时候会更新触发器-->
         <property name="overwriteExistingJobs" value="true"/>
-        <property name="applicationContextSchedulerContextKey" value="appli"/>
+        <property name="applicationContextSchedulerContextKey" value="applicationContext"/>
 
         <property name="jobFactory">
             <bean class="com.wu.quartz.AutowiringSpringBeanJobFactory"/>
@@ -80,6 +80,7 @@
         <property name="triggers">
             <list>
                 <ref bean="timeTaskJobsTrigger"/>
+                <ref bean="timeTaskJobsTrigger2"/>
             </list>
         </property>
 
@@ -94,19 +95,51 @@
         <property name="cronExpression" value="0/10 * * * * ?"/>
     </bean>
 
-
-    <!-- 配置定时任务Job详情方法2 obDetail用JobDetailFactoryBean包装QuartzJobBean的继承子类（即Job类）的实例-->
+    <!-- 配置定时任务Job详情方法 obDetail用JobDetailFactoryBean包装QuartzJobBean的继承子类（即Job类）的实例-->
     <bean name="timeTaskJobs" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
         <property name="jobClass" value="com.wu.task.TimeTaskJobs"/>
-        <!--因为我使用了spring的注解，所以这里可以不用配置scheduler的属性-->
-        <!--<property name="jobDataAsMap">
-            <map>
-                <entry key="clusterQuartz" value="com.aaron.framework.clusterquartz.job.ClusterQuartz"/>
-            </map>
-        </property>-->
+        <!--传参数-->
+        <property name="jobDataMap">
+            <bean class="org.quartz.JobDataMap">
+                <constructor-arg>
+                    <map>
+                        <entry key="method" value="method1" />
+                    </map>
+                </constructor-arg>
+            </bean>
+        </property>
         <property name="durability" value="true"/>
         <!--设置为 true，当Quartz服务被中止后，再次启动或集群中其他机器接手任务时会尝试恢复执行之前未完成的所有任务-->
         <property name="requestsRecovery" value="false"/>
     </bean>
+
+    <!--#################################################################################-->
+    <!-- 配置触发时间 -->
+    <bean name="timeTaskJobsTrigger2" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <!--定时任务job集成-->
+        <property name="jobDetail" ref="timeTaskJobs2"/>
+        <property name="cronExpression" value="0/3 * * * * ?"/>
+    </bean>
+
+    <!-- 配置定时任务Job详情方法 obDetail用JobDetailFactoryBean包装QuartzJobBean的继承子类（即Job类）的实例-->
+    <bean name="timeTaskJobs2" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.wu.task.TimeTaskJobs"/>
+        <!--传参数-->
+        <property name="jobDataMap">
+            <bean class="org.quartz.JobDataMap">
+                <constructor-arg>
+                    <map>
+                        <entry key="method" value="method2" />
+                    </map>
+                </constructor-arg>
+            </bean>
+        </property>
+        <property name="durability" value="true"/>
+        <!--设置为 true，当Quartz服务被中止后，再次启动或集群中其他机器接手任务时会尝试恢复执行之前未完成的所有任务-->
+        <property name="requestsRecovery" value="false"/>
+    </bean>
+
+
+
     <!-- 分布式事务配置 end -->
 </beans>

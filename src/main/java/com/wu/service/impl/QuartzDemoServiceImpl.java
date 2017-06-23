@@ -16,4 +16,11 @@ public class QuartzDemoServiceImpl implements QuartzDemoService {
         System.out.println("*    服务器1  -----   current os name is " + System.getProperty("os.name"));
 
     }
+
+    @Override
+    public void printUserInfo2() {
+
+        System.out.println("--------------------------" );
+
+    }
 }

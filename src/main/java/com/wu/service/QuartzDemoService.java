@@ -5,4 +5,6 @@ package com.wu.service;
  */
 public interface QuartzDemoService {
     void printUserInfo();
+
+    void printUserInfo2();
 }
