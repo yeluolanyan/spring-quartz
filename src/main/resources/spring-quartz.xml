@@ -94,7 +94,7 @@
         <property name="jobDetail" ref="timeTaskJobs"/>
         <property name="cronExpression" value="0/10 * * * * ?"/>
     </bean>
-
+    <!--集群只能使用JobDetailFactoryBean方式集成定时任务，无法使用MethodInvokingJobDetailFactoryBean因为该类无法序列化持久化到数据库和传参数-->
     <!-- 配置定时任务Job详情方法 obDetail用JobDetailFactoryBean包装QuartzJobBean的继承子类（即Job类）的实例-->
     <bean name="timeTaskJobs" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
         <property name="jobClass" value="com.wu.task.TimeTaskJobs"/>
