@@ -20,7 +20,7 @@ public class QuartzDemoServiceImpl implements QuartzDemoService {
     @Override
     public void printUserInfo2() {
 
-        System.out.println("--------------------------" );
+        System.out.println("定时任务2--------------------------" );
 
     }
 }

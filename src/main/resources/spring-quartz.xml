@@ -71,6 +71,10 @@
         <!-- 每台集群机器部署应用的时候会更新触发器-->
         <property name="overwriteExistingJobs" value="true"/>
         <property name="applicationContextSchedulerContextKey" value="applicationContext"/>
+        <!--必须的，QuartzScheduler 延时启动，应用启动完后 QuartzScheduler 再启动 -->
+        <property name="startupDelay" value="30" />
+        <!-- 设置自动启动 -->
+        <property name="autoStartup" value="true" />
 
         <property name="jobFactory">
             <bean class="com.wu.quartz.AutowiringSpringBeanJobFactory"/>
@@ -85,54 +89,48 @@
         </property>
 
         <property name="taskExecutor" ref="executor"/>
-
     </bean>
 
-    <!-- 配置触发时间 -->
-    <bean name="timeTaskJobsTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
-        <!--定时任务job集成-->
-        <property name="jobDetail" ref="timeTaskJobs"/>
-        <property name="cronExpression" value="0/10 * * * * ?"/>
-    </bean>
+    <!-- 配置处理的定时任务 -->
+    <bean name="timeTaskJob2" class="com.wu.task.TimeTaskJobs2"/>
     <!--集群只能使用JobDetailFactoryBean方式集成定时任务，无法使用MethodInvokingJobDetailFactoryBean因为该类无法序列化持久化到数据库和传参数-->
     <!-- 配置定时任务Job详情方法 obDetail用JobDetailFactoryBean包装QuartzJobBean的继承子类（即Job类）的实例-->
-    <bean name="timeTaskJobs" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
-        <property name="jobClass" value="com.wu.task.TimeTaskJobs"/>
-        <!--传参数-->
-        <property name="jobDataMap">
-            <bean class="org.quartz.JobDataMap">
-                <constructor-arg>
-                    <map>
-                        <entry key="method" value="method1" />
-                    </map>
-                </constructor-arg>
-            </bean>
+    <bean name="jobDetailBean" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.wu.quartz.MyDetailQuartzJobBean"/>
+        <property name="jobDataAsMap">
+            <map>
+                <entry key="targetObject" value="timeTaskJob2"/>
+                <entry key="targetMethod" value="task1" />
+            </map>
         </property>
         <property name="durability" value="true"/>
         <!--设置为 true，当Quartz服务被中止后，再次启动或集群中其他机器接手任务时会尝试恢复执行之前未完成的所有任务-->
         <property name="requestsRecovery" value="false"/>
     </bean>
 
+    <!-- 配置触发时间 -->
+    <bean name="timeTaskJobsTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <!--定时任务job集成-->
+        <property name="jobDetail" ref="jobDetailBean"/>
+        <property name="cronExpression" value="0/10 * * * * ?"/>
+    </bean>
+
     <!--#################################################################################-->
     <!-- 配置触发时间 -->
     <bean name="timeTaskJobsTrigger2" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
         <!--定时任务job集成-->
-        <property name="jobDetail" ref="timeTaskJobs2"/>
+        <property name="jobDetail" ref="jobDetailBean2"/>
         <property name="cronExpression" value="0/3 * * * * ?"/>
     </bean>
 
     <!-- 配置定时任务Job详情方法 obDetail用JobDetailFactoryBean包装QuartzJobBean的继承子类（即Job类）的实例-->
-    <bean name="timeTaskJobs2" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
-        <property name="jobClass" value="com.wu.task.TimeTaskJobs"/>
-        <!--传参数-->
-        <property name="jobDataMap">
-            <bean class="org.quartz.JobDataMap">
-                <constructor-arg>
-                    <map>
-                        <entry key="method" value="method2" />
-                    </map>
-                </constructor-arg>
-            </bean>
+    <bean name="jobDetailBean2" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.wu.quartz.MyDetailQuartzJobBean"/>
+        <property name="jobDataAsMap">
+            <map>
+                <entry key="targetObject" value="timeTaskJob2"/>
+                <entry key="targetMethod" value="task2" />
+            </map>
         </property>
         <property name="durability" value="true"/>
         <!--设置为 true，当Quartz服务被中止后，再次启动或集群中其他机器接手任务时会尝试恢复执行之前未完成的所有任务-->
